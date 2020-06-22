@@ -1,0 +1,28 @@
+{
+  "name": "app.js",
+  "version": "1.0.0",
+  "description": "<h1>Information - I'll be updating this as I figure out how I want the game to work</h1> <h2>Controls</h2> WASD - Move around <br>Space - Activate shield <br>Mouse - Aim <br>Click - Shoot",
+  "main": "app.js",
+  "dependencies": {
+    "express": "^4.17.1",
+    "fs": "^0.0.1-security",
+    "http-server": "^0.12.3",
+    "mysql2": "^2.1.0",
+    "require": "^2.4.20",
+    "socket.io": "^2.3.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "node app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eligilbert/rooms-game.git"
+  },
+  "author": "Elias Gilbert",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/eligilbert/rooms-game/issues"
+  },
+  "homepage": "https://github.com/eligilbert/rooms-game#readme"
+}
