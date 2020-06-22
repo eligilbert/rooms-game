@@ -15,7 +15,7 @@ app.use(express.static(__dirname + '/static'));
 app.use(express.static(__dirname + '/images'));
 
 // set up server on port 3000
-serv.listen(3000);
+app.listen(process.env.PORT);
 console.log("Server started.");
 
 // create mysql2 connection pool
