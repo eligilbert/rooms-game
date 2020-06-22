@@ -14,8 +14,8 @@ app.get('/',function(req, res) {
 app.use(express.static(__dirname + '/static'));
 app.use(express.static(__dirname + '/images'));
 
-// set up server on localhost:8080
-serv.listen(8080);
+// set up server on port 3000
+serv.listen(3000);
 console.log("Server started.");
 
 // create mysql2 connection pool
