@@ -15,12 +15,14 @@ app.use(express.static(__dirname + '/static'));
 app.use(express.static(__dirname + '/images'));
 
 // set up server (for Heroku)
-// serv.listen(process.env.PORT);
-// console.log("Server started on port ".concat(process.env.PORT));
-
-// set up server (local)
-serv.listen(8080);
-console.log("Local server started on port 8080");
+if(process.env.PORT !== undefined) {
+    serv.listen(process.env.PORT);
+    console.log("Server started on port ".concat(process.env.PORT));
+} else {
+    // set up server (local)
+    serv.listen(8080);
+    console.log("Local server started on port 8080");
+}
 
 // create mysql2 connection pool
 const receive = mysql.createPool({host:'classnote.cctd6tsztsfn.us-west-1.rds.amazonaws.com', user: 'classnote', password: 'macklineli', database: 'ClassNoteDB'});
