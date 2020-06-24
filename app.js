@@ -72,9 +72,13 @@ io.sockets.on('connection', function(socket){
     socket.on('killMe', function(player_id) {
         let d = "DELETE FROM rooms_players WHERE player_id = ".concat(player_id[0], ";");
         receive.query(d);
-        let r = "UPDATE rooms_rooms SET owner_id = NULL WHERE owner_id = ".concat(player_id[0], ";");
+        let r = "UPDATE rooms_rooms SET owner_id = ".concat(player_id[3], " WHERE owner_id = ", player_id[0], ";");
         receive.query(r);
-        console.log("<< ".concat(player_id[1], "#", player_id[0], " was ", player_id[2]))
+        if(player_id[3] !== "NULL") {
+            console.log("<< ".concat(player_id[1], "#", player_id[0], " was ", player_id[2], " by ", player_id[3]))
+        } else {
+            console.log("<< ".concat(player_id[1], "#", player_id[0], " was ", player_id[2]))
+        }
     });
 });
 

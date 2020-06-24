@@ -70,6 +70,43 @@ function hexToRGB(hex) {
     }
 }
 
+// when user presses play
+function startGame() {
+    let gen_id = "";
+    for (let i = 0; i < 4; i++) {
+        gen_id = gen_id.concat(Math.floor(Math.random()*10));
+    }
+    if(JSONData.players.hasOwnProperty(gen_id)) {
+        gen_id = "";
+        for (let i = 0; i < 4; i++) {
+            gen_id = gen_id.concat(Math.floor(Math.random()*10));
+        }
+    }
+    let randomColor = Math.floor(Math.random()*16777215).toString(16);
+    const rgb = hexToRGB("#".concat(randomColor))
+    if(rgb.r < 20 && rgb.g < 20 && rgb.b < 20) {
+        randomColor = "#ffffff";
+    }
+    JSONData["me"] = {
+        "name": name_input_text, // get from text input
+        "room_x": Math.floor(Math.random()*26)+2,
+        "room_y": Math.floor(Math.random()*26)+2,
+        "pos_x": Math.floor(Math.random()*50)+25,
+        "pos_y": Math.floor(Math.random()*50)+25,
+        "shield_on": false,
+        "id": gen_id, // generated id
+        "skin": "#".concat(randomColor), // random hex color
+        "new": {},
+        "is_dead": false
+    };
+    if(JSONData.me.name === "") {
+        JSONData.me["name"] = "unnamed";
+    }
+    max_score = 0;
+    shots_fired = 0;
+    playing = true;
+}
+
 // when a key is pressed
 function keyDownHandler(event) {
     if(event.key === "Shift") {
@@ -97,6 +134,8 @@ function keyDownHandler(event) {
             name_input_text = name_input_text.concat(event.key);
         } else if(event.key === "Backspace") {
             name_input_text = name_input_text.slice(0,-1);
+        } else if(event.key === "Enter") {
+            startGame();
         }
     }
 
@@ -182,43 +221,8 @@ function clickHandler(event) {
                                       "th": theta,
                                       "time": (new Date().getTime() + 300)};
         shots_fired++;
-        // format:     id: [owner, origin room x, origin room y, position x, position y, theta, time]
     } else if(!playing) {
-        if(isInside({x: event.clientX, y: event.clientY}, playBtnRect)) {
-            let gen_id = "";
-            for (let i = 0; i < 4; i++) {
-                gen_id = gen_id.concat(Math.floor(Math.random()*10));
-            }
-            if(JSONData.players.hasOwnProperty(gen_id)) {
-               gen_id = "";
-               for (let i = 0; i < 4; i++) {
-                   gen_id = gen_id.concat(Math.floor(Math.random()*10));
-               }
-            }
-            let randomColor = Math.floor(Math.random()*16777215).toString(16);
-            const rgb = hexToRGB("#".concat(randomColor))
-            if(rgb.r < 20 && rgb.g < 20 && rgb.b < 20) {
-                randomColor = "#ffffff";
-            }
-            JSONData["me"] = {
-                "name": name_input_text, // get from text input
-                "room_x": Math.floor(Math.random()*26)+2,
-                "room_y": Math.floor(Math.random()*26)+2,
-                "pos_x": Math.floor(Math.random()*50)+25,
-                "pos_y": Math.floor(Math.random()*50)+25,
-                "shield_on": false,
-                "id": gen_id, // generated id
-                "skin": "#".concat(randomColor), // random hex color
-                "new": {},
-                "is_dead": false
-            };
-            if(JSONData.me.name === "") {
-                JSONData.me["name"] = "unnamed";
-            }
-            max_score = 0;
-            shots_fired = 0;
-            playing = true;
-        }
+        startGame();
     }
 }
 
@@ -227,7 +231,7 @@ function clickHandler(event) {
 // return false allows movement (default), return true when restricted by a wall in that direction
 function touchingWallLeft() {
     if(JSONData.me.pos_x<9) {
-        if(JSONData.me.pos_y<30 || JSONData.me.pos_y>70) {
+        if(JSONData.me.pos_y<30 || JSONData.me.pos_y>70 || JSONData.me.room_x === 0) {
             return true;
         }
         isDoorClosed(JSONData.me.room_x, JSONData.me.room_y, "left");
@@ -235,7 +239,7 @@ function touchingWallLeft() {
 }
 function touchingWallRight() {
     if(JSONData.me.pos_x>91) {
-        if (JSONData.me.pos_y < 30 || JSONData.me.pos_y > 70) {
+        if (JSONData.me.pos_y < 30 || JSONData.me.pos_y > 70 || JSONData.me.room_x === 29) {
             return true;
         }
         isDoorClosed(JSONData.me.room_x, JSONData.me.room_y, "right");
@@ -243,7 +247,7 @@ function touchingWallRight() {
 }
 function touchingWallUp() {
     if(JSONData.me.pos_y<9) {
-        if(JSONData.me.pos_x<30 || JSONData.me.pos_x>70) {
+        if(JSONData.me.pos_x<30 || JSONData.me.pos_x>70 || JSONData.me.room_y === 0) {
             return true;
         }
         isDoorClosed(JSONData.me.room_x, JSONData.me.room_y, "up");
@@ -251,7 +255,7 @@ function touchingWallUp() {
 }
 function touchingWallDown() {
     if(JSONData.me.pos_y>91) {
-        if (JSONData.me.pos_x < 30 || JSONData.me.pos_x > 70) {
+        if (JSONData.me.pos_x < 30 || JSONData.me.pos_x > 70 || JSONData.me.room_y === 29) {
             return true;
         }
         return isDoorClosed(JSONData.me.room_x, JSONData.me.room_y, "down");
@@ -273,11 +277,11 @@ function isDoorClosed(room_x, room_y, direction) {
 // take the user actions and update my data
 function compileUserActions() {
     // change position in room
-    let delta = 1 + scores[JSONData.me.id] / 15;
-    if(shiftPressed && delta > 2) {
-        delta = 2;
-    } else if(delta > 8) {
-        delta = 8;
+    let delta = 4.5 - scores[JSONData.me.id] / 20;
+    if(shiftPressed && delta > 1.5) {
+        delta = 1.5;
+    } else if(delta < 1) {
+        delta = 1;
     }
     if(wPressed && !touchingWallUp() && !shielded) {
         JSONData.me.pos_y -= delta;
@@ -683,6 +687,7 @@ function drawLocal() {
 
             if(shot["owner"] !== JSONData.me.id && distance(x, y, midpoint[0], midpoint[1]) < 30 && scores[JSONData.me.id] < scores[shot["owner"]]/10) {
                 JSONData.me["is_dead"] = true;
+                JSONData.me.killed_me = shot["owner"];
                 playing = false;
             }
 
@@ -705,7 +710,7 @@ function drawLocal() {
 
                                     n++;
                                     scores[player]--;
-                                    if(n > scores[JSONData.me.id]/10){
+                                    if(n > scores[JSONData.me.id]/6){
                                         break;
                                     }
                                 }
@@ -713,7 +718,7 @@ function drawLocal() {
                             }
                             yr = 0;
                             xr++;
-                            if(n > scores[JSONData.me.id]/10) {
+                            if(n > scores[JSONData.me.id]/6) {
                                 break;
                             }
                         }
@@ -821,7 +826,7 @@ function meData() {
     } else if(!dataHasLoaded) {
         socket.emit('notYetLoaded');
     } else if(JSONData.me.is_dead === true) {
-        socket.emit('killMe', [JSONData.me.id, JSONData.me.name, "killed"]);
+        socket.emit('killMe', [JSONData.me.id, JSONData.me.name, "killed", JSONData.me.killed_me]);
         JSONData.me.is_dead = 1;
     }
 }
@@ -855,6 +860,6 @@ socket.on('sendingShotsData', function(newData) {
 // if the user closes the window delete them from the game
 window.onbeforeunload = function() {
     if(playing) {
-        socket.emit('killMe', [JSONData.me.id, JSONData.me.name, "terminated"]);
+        socket.emit('killMe', [JSONData.me.id, JSONData.me.name, "terminated", "NULL"]);
     }
 };

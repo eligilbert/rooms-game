@@ -1,7 +1,6 @@
 {
   "name": "app.js",
-  "version": "1.0.0",
-  "description": "<h1>Information - I'll be updating this as I figure out how I want the game to work</h1> <h2>Controls</h2> WASD - Move around <br>Space - Activate shield <br>Mouse - Aim <br>Click - Shoot",
+  "version": "0.2",
   "main": "app.js",
   "dependencies": {
     "express": "^4.17.1",
