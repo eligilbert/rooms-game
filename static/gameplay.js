@@ -30,6 +30,9 @@ const circlesDict = {"red": red, "blue": blue, "green": green, "white": white};
 let wasd = new Image(); wasd.src = 'wasd.png';
 let plus = new Image(); plus.src = 'plus.png'; plus.anchor = "center";
 let shield = new Image(); shield.src = 'shield.png'; shield.anchor = "center";
+let click = new Image(); click.src = 'mouse_click.png'; click.anchor = "center";
+let space = new Image(); space.src = 'spacebar.png'; space.anchor = "center";
+let shift = new Image(); shift.src = 'shift.png'; shift.anchor = "center";
 
 // control listeners setup
 document.addEventListener('keydown', keyDownHandler, false);
@@ -209,7 +212,6 @@ function clickHandler(event) {
         const y = event.clientY;
         const dx = x - (canvas.width-310)/2;
         const dy = y - canvas.height/2;
-        // TODO this mechanic will have to change when a person has multiple sprites
         let theta = Math.atan(dx/dy);
         if(dy < 0) {
             theta = theta + Math.PI;
@@ -221,7 +223,7 @@ function clickHandler(event) {
                                       "th": theta,
                                       "time": (new Date().getTime() + 300)};
         shots_fired++;
-    } else if(!playing) {
+    } else if(!playing && isInside({x: event.clientX, y: event.clientY}, playBtnRect)) {
         startGame();
     }
 }
@@ -347,7 +349,15 @@ function drawAdArea() {
     DRAW.lineWidth = 10;
 
     // controls tutorial
-    // DRAW.drawImage(wasd, canvas.width-305, 380, 150, 100);
+    DRAW.drawImage(wasd, canvas.width-110, 380, 90, 60);
+    DRAW.font = "16px Arial";
+    DRAW.fillText("to move", canvas.width-95, 455);
+    DRAW.drawImage(click, canvas.width-110, 470, 40, 60);
+    DRAW.fillText("to shoot", canvas.width-70, 510);
+    DRAW.drawImage(space, canvas.width-115, 535, 100, 30);
+    DRAW.fillText("activate shield", canvas.width-115, 580);
+    DRAW.drawImage(shift, canvas.width-100, 595, 70, 30);
+    DRAW.fillText("slow down", canvas.width-102, 640);
 
     // leaderboard
     // FIXME leaderboard goes away and exhibits strange behavior sometimes when another player quits
@@ -732,12 +742,14 @@ function drawLocal() {
     DRAW.beginPath();
 }
 
-// draw the play button initially
+// draw the start screen
 function drawPlayButton() {
+    // play button
     DRAW.fillStyle = '#c3c3c3';
     DRAW.fillRect(playBtnRect.x, playBtnRect.y, playBtnRect.width, playBtnRect.height);
     DRAW.fillStyle = 'black';
     DRAW.font = "40px Arial";
+    DRAW.textAlign = "left";
     DRAW.fillText('Play!', canvas.width/2-43, canvas.height/2+72);
 
     // draw input for username and color etc.
@@ -752,6 +764,14 @@ function drawPlayButton() {
         DRAW.fillStyle = '#c3c3c3';
         DRAW.fillText(name_input_text, inputRect.x + 5, inputRect.y + 20);
     }
+
+    // instructions
+    DRAW.textAlign = "center";
+    DRAW.font = "18px Arial";
+    DRAW.fillStyle = "#c3c3c3";
+    DRAW.fillText("Claim rooms by shooting other players or touching the center of the room", canvas.width/2, canvas.height/2 + 120);
+    DRAW.fillText("Growing will make your shot more powerful and make you bigger but make you slower", canvas.width/2, canvas.height/2 + 140);
+    DRAW.fillText("Move: W A S D   Shoot: Click   Shield: Space   Slow down: Shift", canvas.width/2, canvas.height/2 + 160);
 }
 
 function drawDeath() {
