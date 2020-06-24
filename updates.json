@@ -1,5 +1,13 @@
 {
   "0.0.1 (21 Jun 2020)": "initial push",
   "0.0.2 (23 Jun 2020)": "flipped speed mechanic, buffed shots, nerfed speed, return for start, fixed world border, get rooms from kill",
-  "0.0.3 (24 Jun 2020)": "instructions"
+  "0.0.3 (24 Jun 2020)": "instructions",
+  "0.0.4 (24 Jun 2020)": "shots cleanup",
+  "future": {
+    "0.1": "bots",
+    "0.2": "closed doors",
+    "0.3": "aesthetic improvements",
+    "0.4": "improvements from beta testing",
+    "1.0": "public release"
+  }
 }

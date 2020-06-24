@@ -24,9 +24,11 @@ if(process.env.PORT !== undefined) {
     console.log("Local server started on port 8080");
 }
 
-// create mysql2 connection pool
+// create mysql2 connection pools
 const receive = mysql.createPool({host:'classnote.cctd6tsztsfn.us-west-1.rds.amazonaws.com', user: 'classnote', password: 'macklineli', database: 'ClassNoteDB'});
 const send = mysql.createPool({host:'classnote.cctd6tsztsfn.us-west-1.rds.amazonaws.com', user: 'classnote', password: 'macklineli', database: 'ClassNoteDB'});
+const cleanup_pool = mysql.createPool({host:'classnote.cctd6tsztsfn.us-west-1.rds.amazonaws.com', user: 'classnote', password: 'macklineli', database: 'ClassNoteDB'});
+const bots_pool = mysql.createPool({host:'classnote.cctd6tsztsfn.us-west-1.rds.amazonaws.com', user: 'classnote', password: 'macklineli', database: 'ClassNoteDB'});
 
 // local variable to remember players list
 let players = [];
@@ -131,13 +133,17 @@ function bots() {
     // TODO control bots from here
     // this is a big project that needs to be done but will take a while
     // make sure that it doesn't lag the server too much also!
+    // this will be the big update for 1.0.0
 }
 
+// TODO maybe change this to maximize speed rather than just 10x / sec like with the data transmit
 setInterval(bots, 100);
 
 function cleanup() {
-    // TODO delete old players and shots
-    // make sure this doesn't lag the server
+    // delete shots older than 3 seconds
+    let border_time = new Date().getTime() - 3000;
+    cleanup_pool.query('DELETE FROM rooms_shots WHERE shot_time < '.concat(border_time, ";"))
 }
 
-setInterval(cleanup, 100);
+// clean up only executes once a second
+setInterval(cleanup, 1000);
