@@ -4,6 +4,8 @@ var express = require('express');
 var app = express();
 var serv = require('http').Server(app);
 var io = require('socket.io')(serv, {});
+var bots = require('./bots.js');
+// var sizeof = require('object-sizeof');
 
 // connect to index.html
 app.get('/',function(req, res) {
@@ -30,8 +32,14 @@ const send = mysql.createPool({host:'classnote.cctd6tsztsfn.us-west-1.rds.amazon
 const cleanup_pool = mysql.createPool({host:'classnote.cctd6tsztsfn.us-west-1.rds.amazonaws.com', user: 'classnote', password: 'macklineli', database: 'ClassNoteDB'});
 const bots_pool = mysql.createPool({host:'classnote.cctd6tsztsfn.us-west-1.rds.amazonaws.com', user: 'classnote', password: 'macklineli', database: 'ClassNoteDB'});
 
-// local variable to remember players list
+// local variables to remember data
 let players = [];
+let player_data = [];
+let rooms_data = [];
+let shots_data = [];
+
+// let data_sent_amount = 0;
+// let start_time = new Date().getTime();
 
 // when the player sends data
 io.sockets.on('connection', function(socket){
@@ -98,9 +106,7 @@ function sendData() {
     const pre_query = new Date().getTime();
     send.query('SELECT * FROM rooms_players WHERE channel = 1;', function (err, results, fields) {
         io.sockets.emit('sendingPlayerData', results);
-        for(let p in results) {
-            players.push(p);
-        }
+        player_data = results;
     });
     // rooms data
     send.query('SELECT * FROM rooms_rooms WHERE channel = 1 AND owner_id IS NOT NULL;', function (err, results, fields) {
@@ -114,6 +120,7 @@ function sendData() {
         }
         io.sockets.emit('sendingRoomData', results_to_send);
         prev_rooms_results = results;
+        rooms_data = results;
     });
     // shots data
     let border_time = new Date().getTime() - 3000;
@@ -121,28 +128,21 @@ function sendData() {
         io.sockets.emit('sendingShotsData', results);
         let post_query = new Date().getTime();
         duration = post_query - pre_query;
-        // console.log(duration);
+        shots_data = results;
     });
 
+    bots.data.updateBots(player_data, rooms_data, shots_data, bots_pool);
+    bots.data.newBots(player_data, bots_pool);
+
+    // uses dynamic timeout rather than interval to fix backlogging
     setTimeout(sendData, duration + 10);
-    // use dynamic timeout rather than interval to fix backlogging
 }
 sendData();
-
-function bots() {
-    // TODO control bots from here
-    // this is a big project that needs to be done but will take a while
-    // make sure that it doesn't lag the server too much also!
-    // this will be the big update for 1.0.0
-}
-
-// TODO maybe change this to maximize speed rather than just 10x / sec like with the data transmit
-setInterval(bots, 100);
 
 function cleanup() {
     // delete shots older than 3 seconds
     let border_time = new Date().getTime() - 3000;
-    cleanup_pool.query('DELETE FROM rooms_shots WHERE shot_time < '.concat(border_time, ";"))
+    cleanup_pool.query('DELETE FROM rooms_shots WHERE shot_time < '.concat(border_time, ";"));
 }
 
 // clean up only executes once a second

@@ -3,11 +3,15 @@
   "0.0.2 (23 Jun 2020)": "flipped speed mechanic, buffed shots, nerfed speed, return for start, fixed world border, get rooms from kill",
   "0.0.3 (24 Jun 2020)": "instructions",
   "0.0.4 (24 Jun 2020)": "shots cleanup",
-  "future": {
-    "0.1": "bots",
+  "0.1.0 (25 Jun 2020)": "initial bots skeleton",
+
+  "future plans": {
     "0.2": "closed doors",
-    "0.3": "aesthetic improvements",
-    "0.4": "improvements from beta testing",
-    "1.0": "public release"
+    "0.3": "data transfer optimization",
+    "0.4": "aesthetic improvements",
+    "0.5": "improvements from beta testing with multiple players",
+    "0.6": "support for multiple channels",
+    "1.0": "public release",
+    "1.1": "improvements from problems with public release"
   }
 }
