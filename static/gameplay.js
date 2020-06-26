@@ -391,6 +391,9 @@ function drawAdArea() {
         for(let i in leaderboard) {
             let player = leaderboard[i];
             DRAW.font = "18px Arial";
+            if(player === JSONData.me.id) {
+                DRAW.font = "bold 18px Arial";
+            }
             DRAW.fillStyle = JSONData.players[player].skin;
             DRAW.fillText("".concat(i, ". ", JSONData.players[player].name, ": ", Math.round(scores[player] / 0.9) / 10, "%"), canvas.width-305, 380+i*20);
             i++;
