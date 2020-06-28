@@ -124,27 +124,30 @@ function move(me, players, rooms, strategy, pool, score) {
 }
 
 function shoot(me, players, strategy, pool) {
-    // shoot at the nearest player if there is one in range
-    // use rng to make this only happen occasionally (not a constant stream)
+    // shoot a player who is in the same room
     for(let p in players) {
         let player = players[p];
         if(player.player_id !== me.player_id && player.room_x === me.room_x && player.room_y === me.room_y) {
-            if(Math.random() < 0.2) {
+            // use rng to restrict to ~2 shots / sec
+            if(Math.random() < 0.1) {
                 let dx = me.pos_x - player.pos_x;
                 let dy = me.pos_y - player.pos_y;
-                let theta = Math.atan(dx/dy);
+                let theta = Math.atan(dx/(dy+0.001));
                 let shot = {
                     "rx": me.room_x,
                     "ry": me.room_y,
                     "px": me.pos_x,
                     "py": me.pos_y,
                     "th": theta,
+                    // shot delay for players is 300ms but 370ms for bots to account for ~50ms client-server latency that is not present in the bot script
                     "time": (new Date().getTime() + 370)};
+                // log shot to DB
                 let s = "INSERT INTO rooms_shots (owner, origin_room_x, origin_room_y, origin_pos_x, origin_pos_y, theta, shot_time, channel) VALUES (\'";
                 s = s.concat(me.player_id, "\', ", shot.rx, ", ", shot.ry, ", ");
                 s = s.concat(shot.px, ", ", shot.py, ", ", shot.th, ", ");
                 s = s.concat(shot.time, ", 1);");
                 pool.query(s);
+                // only one player can be shot per iter
                 break;
             }
         }
@@ -159,6 +162,13 @@ function check_collisions(me, players, shots, pool, score) {
 }
 
 methods.updateBots = function(players, rooms, shots, pool) {
+    let rooms_clean = {};
+    for(let room in rooms) {
+        let rd = rooms[room];
+        let room_coord = "(".concat(rd.room_x, ",", rd.room_y, ")");
+        rooms_clean[room_coord] = rd["owner_id"];
+    }
+
     for(let p in players) {
         if(players[p]["is_bot"]) {
             let player = players[p];
@@ -170,12 +180,6 @@ methods.updateBots = function(players, rooms, shots, pool) {
                 strategy = "camp";
             } else {
                 strategy = "person";
-            }
-            let rooms_clean = {};
-            for(let room in rooms) {
-                let rd = rooms[room];
-                let room_coord = "(".concat(rd.room_x, ",", rd.room_y, ")");
-                rooms_clean[room_coord] = rd["owner_id"];
             }
             move(player, players, rooms_clean, strategy, pool, myScore);
             shoot(player, players, strategy, pool);

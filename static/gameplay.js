@@ -849,7 +849,7 @@ function meData() {
     } else if(!dataHasLoaded) {
         socket.emit('notYetLoaded');
     } else if(JSONData.me.is_dead === true) {
-        socket.emit('killMe', [JSONData.me.id, JSONData.me.name, "killed", JSONData.me.killed_me]);
+        socket.emit('killMe', [JSONData.me.id, JSONData.me.name, "killed", JSONData.me.killed_me, JSONData.players[JSONData.me.killed_me]["name"].concat("#",JSONData.me.killed_me)]);
         JSONData.me.is_dead = 1;
     }
 }

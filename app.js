@@ -50,7 +50,8 @@ io.sockets.on('connection', function(socket){
             i = i.concat(data.id, "\', \'", data.name, "\', 1, \'", data.skin, "\', false, ", data.pos_x, ", ", data.pos_y, ", ", data.room_x, ", ", data.room_y, ");");
             receive.query(i);
             players.push(data.id);
-            console.log(">> ".concat(data.name, "#", data.id, " joined"))
+            console.log(">> ".concat(data.name, "#", data.id, " joined"));
+            bots.data.newBots(player_data, bots_pool); // create new bots if needed
         } else { // normal update
             let q = 'UPDATE rooms_players SET room_x = ';
             q = q.concat(data.room_x);
@@ -91,7 +92,7 @@ io.sockets.on('connection', function(socket){
         let r = "UPDATE rooms_rooms SET owner_id = ".concat(player_id[3], " WHERE owner_id = ", player_id[0], ";");
         receive.query(r);
         if(player_id[3] !== "NULL") {
-            console.log("<< ".concat(player_id[1], "#", player_id[0], " was ", player_id[2], " by ", player_id[3]))
+            console.log("<< ".concat(player_id[1], "#", player_id[0], " was ", player_id[2], " by ", player_id[4]))
         } else {
             console.log("<< ".concat(player_id[1], "#", player_id[0], " was ", player_id[2]))
         }
@@ -131,8 +132,8 @@ function sendData() {
         shots_data = results;
     });
 
+    // FIXME to save the server don't run this when no players are on... not sure how to do this yet
     bots.data.updateBots(player_data, rooms_data, shots_data, bots_pool);
-    bots.data.newBots(player_data, bots_pool);
 
     // uses dynamic timeout rather than interval to fix backlogging
     setTimeout(sendData, duration + 10);
