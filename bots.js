@@ -123,12 +123,35 @@ function move(me, players, rooms, strategy, pool, score) {
     }
 }
 
-function shoot(id, players, strategy, pool, score) {
+function shoot(me, players, strategy, pool) {
     // shoot at the nearest player if there is one in range
     // use rng to make this only happen occasionally (not a constant stream)
+    for(let p in players) {
+        let player = players[p];
+        if(player.player_id !== me.player_id && player.room_x === me.room_x && player.room_y === me.room_y) {
+            if(Math.random() < 0.2) {
+                let dx = me.pos_x - player.pos_x;
+                let dy = me.pos_y - player.pos_y;
+                let theta = Math.atan(dx/dy);
+                let shot = {
+                    "rx": me.room_x,
+                    "ry": me.room_y,
+                    "px": me.pos_x,
+                    "py": me.pos_y,
+                    "th": theta,
+                    "time": (new Date().getTime() + 370)};
+                let s = "INSERT INTO rooms_shots (owner, origin_room_x, origin_room_y, origin_pos_x, origin_pos_y, theta, shot_time, channel) VALUES (\'";
+                s = s.concat(me.player_id, "\', ", shot.rx, ", ", shot.ry, ", ");
+                s = s.concat(shot.px, ", ", shot.py, ", ", shot.th, ", ");
+                s = s.concat(shot.time, ", 1);");
+                pool.query(s);
+                break;
+            }
+        }
+    }
 }
 
-function check_collisions(id, players, shots, pool) {
+function check_collisions(me, players, shots, pool, score) {
     // check collisions of my shots with other players
     // claim rooms
     // check collisions of other shots with me (make sure not to include shots that have already hit things)
@@ -155,8 +178,8 @@ methods.updateBots = function(players, rooms, shots, pool) {
                 rooms_clean[room_coord] = rd["owner_id"];
             }
             move(player, players, rooms_clean, strategy, pool, myScore);
-            shoot(player, players, strategy, pool, myScore);
-            check_collisions(player, shots, pool);
+            shoot(player, players, strategy, pool);
+            check_collisions(player, shots, pool, myScore);
         }
     }
 };
