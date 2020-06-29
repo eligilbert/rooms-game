@@ -7,7 +7,7 @@ let methods = {};
 function getScore(id, rooms) {
     let s = 0;
     for(let r in rooms) {
-        if(rooms[r]["owner_id"] === id) {
+        if(rooms[r] === id) {
             s++;
         }
     }
@@ -128,8 +128,8 @@ function shoot(me, players, strategy, pool) {
     for(let p in players) {
         let player = players[p];
         if(player.player_id !== me.player_id && player.room_x === me.room_x && player.room_y === me.room_y) {
-            // use rng to restrict to ~2 shots / sec
-            if(Math.random() < 0.1) {
+            // restrict to ~1/sec
+            if(new Date().getTime() % 1000 < 100) {
                 let dx = me.pos_x - player.pos_x;
                 let dy = me.pos_y - player.pos_y;
                 let theta = Math.atan(dx/(dy+0.001));
@@ -154,11 +154,59 @@ function shoot(me, players, strategy, pool) {
     }
 }
 
-function check_collisions(me, players, shots, pool, score) {
-    // check collisions of my shots with other players
-    // claim rooms
-    // check collisions of other shots with me (make sure not to include shots that have already hit things)
-    // die
+function check_collisions(me, players, shots, pool, rooms, score) {
+    for(let s in shots) {
+        let shot = shots[s];
+        let age = new Date().getTime() - shot["shot_time"];
+        let shot_x = shot["origin_pos_x"] + Math.sin(shot["theta"]) * age / 4.5 + shot["origin_room_x"] * 100;
+        let shot_y = shot["origin_pos_y"] + Math.cos(shot["theta"]) * age / 4.5 + shot["origin_room_y"] * 100;
+        if(shot["owner"] === me.player_id) {
+            // take rooms
+            for(let p in players) {
+                let player = players[p];
+                if(distance(player.room_x*100+player.pos_x, player.room_y*100+player.pos_y, shot_x, shot_y) < 10 && !player.shield_on && player.player_id !== me.player_id) {
+                    let xr = 0;
+                    let yr = 0;
+                    let n = 0;
+                    while (xr < 30) {
+                        while (yr < 30) {
+                            if (rooms["(".concat(xr, ",", yr, ")")] === player.player_id) {
+                                let r = "UPDATE rooms_rooms SET owner_id = \'";
+                                r = r.concat(me.player_id);
+                                r = r.concat("\' WHERE room_x = ", xr, " AND room_y = ", yr);
+                                r = r.concat(" AND channel = 1;");
+                                pool.query(r);
+                                n++;
+                                if(n > score/6){
+                                    break;
+                                }
+                            }
+                            yr++;
+                        }
+                        yr = 0;
+                        xr++;
+                        if(n > score/6) {
+                            break;
+                        }
+                    }
+                }
+            }
+        } else {
+            // kill me if I get shot by someone else 10x bigger
+            if(distance(me.room_x*100+me.pos_x, me.room_y*100+me.pos_y, shot_x, shot_y) < 10) {
+                console.log(getScore(shot["owner"], rooms));
+                if(getScore(shot["owner"], rooms) > 10*score) {
+                    // kill me
+                    let d = "DELETE FROM rooms_players WHERE player_id = ".concat(me.player_id, ";");
+                    pool.query(d);
+                    let r = "UPDATE rooms_rooms SET owner_id = ".concat(shot["owner"], " WHERE owner_id = ", me.player_id, ";");
+                    pool.query(r);
+                    console.log("<< Bot ".concat(me.name, "#", me.player_id, " was killed by #", shot["owner"]))
+                }
+            }
+        }
+    }
+    // TODO keep list of used shots or something
 }
 
 methods.updateBots = function(players, rooms, shots, pool) {
@@ -183,7 +231,7 @@ methods.updateBots = function(players, rooms, shots, pool) {
             }
             move(player, players, rooms_clean, strategy, pool, myScore);
             shoot(player, players, strategy, pool);
-            check_collisions(player, shots, pool, myScore);
+            check_collisions(player, players, shots, pool, rooms_clean, myScore);
         }
     }
 };
