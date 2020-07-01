@@ -1,10 +1,10 @@
 // required modules
 const mysql = require('mysql2');
-var express = require('express');
-var app = express();
-var serv = require('http').Server(app);
-var io = require('socket.io')(serv, {});
-var bots = require('./bots.js');
+const express = require('express');
+const app = express();
+const serv = require('http').Server(app);
+const io = require('socket.io')(serv, {});
+const bots = require('./bots.js');
 // var sizeof = require('object-sizeof');
 
 // connect to index.html
@@ -87,9 +87,9 @@ io.sockets.on('connection', function(socket){
     });
     // if the client has asked for termination
     socket.on('killMe', function(player_id) {
-        let d = "DELETE FROM rooms_players WHERE player_id = ".concat(player_id[0], ";");
+        let d = "DELETE FROM rooms_players WHERE player_id = \'".concat(player_id[0], "\';");
         receive.query(d);
-        let r = "UPDATE rooms_rooms SET owner_id = ".concat(player_id[3], " WHERE owner_id = ", player_id[0], ";");
+        let r = "UPDATE rooms_rooms SET owner_id = \'".concat(player_id[3], "\' WHERE owner_id = ", player_id[0], ";");
         receive.query(r);
         if(player_id[3] !== "NULL") {
             console.log("<< ".concat(player_id[1], "#", player_id[0], " was ", player_id[2], " by ", player_id[4]))
@@ -108,6 +108,7 @@ function sendData() {
     send.query('SELECT * FROM rooms_players WHERE channel = 1;', function (err, results, fields) {
         io.sockets.emit('sendingPlayerData', results);
         player_data = results;
+        bots.data.updateBots(player_data, rooms_data, shots_data, bots_pool);
     });
     // rooms data
     send.query('SELECT * FROM rooms_rooms WHERE channel = 1 AND owner_id IS NOT NULL;', function (err, results, fields) {
@@ -133,7 +134,6 @@ function sendData() {
     });
 
     // FIXME to save the server don't run this when no players are on... not sure how to do this yet
-    bots.data.updateBots(player_data, rooms_data, shots_data, bots_pool);
 
     // uses dynamic timeout rather than interval to fix backlogging
     setTimeout(sendData, duration + 10);
@@ -144,7 +144,19 @@ function cleanup() {
     // delete shots older than 3 seconds
     let border_time = new Date().getTime() - 3000;
     cleanup_pool.query('DELETE FROM rooms_shots WHERE shot_time < '.concat(border_time, ";"));
+    let players_list = [];
+    for(let p in player_data) {
+        players_list.push(player_data[p]["player_id"]);
+    }
+    let for_removal = [];
+    for(let r in rooms_data) {
+        if(!players_list.includes(rooms_data[r]["owner_id"])) {
+            for_removal.push(rooms_data[r]["owner_id"]);
+        }
+    }
+    for(let p in for_removal) {
+        cleanup_pool.query("UPDATE rooms_rooms SET owner_id = NULL WHERE owner_id = \'".concat(for_removal[p], "\';"));
+    }
 }
 
-// clean up only executes once a second
-setInterval(cleanup, 1000);
+setInterval(cleanup, 100);

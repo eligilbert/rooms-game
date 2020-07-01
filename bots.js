@@ -7,7 +7,7 @@ let methods = {};
 function getScore(id, rooms) {
     let s = 0;
     for(let r in rooms) {
-        if(rooms[r] === id) {
+        if(rooms[r]["owner_id"] === id) {
             s++;
         }
     }
@@ -22,6 +22,15 @@ function distance(x1, y1, x2, y2) {
 	ys *= ys;
 
 	return Math.sqrt( xs + ys );
+}
+
+// get rgb color from hex
+function hexToRGB(hex) {
+    return {
+        r: parseInt(hex.substring(1,3),16),
+        g: parseInt(hex.substring(3,5),16),
+        b: parseInt(hex.substring(5,7),16)
+    }
 }
 
 function move(me, players, rooms, strategy, pool, score) {
@@ -194,12 +203,11 @@ function check_collisions(me, players, shots, pool, rooms, score) {
         } else {
             // kill me if I get shot by someone else 10x bigger
             if(distance(me.room_x*100+me.pos_x, me.room_y*100+me.pos_y, shot_x, shot_y) < 10) {
-                console.log(getScore(shot["owner"], rooms));
                 if(getScore(shot["owner"], rooms) > 10*score) {
                     // kill me
-                    let d = "DELETE FROM rooms_players WHERE player_id = ".concat(me.player_id, ";");
+                    let d = "DELETE FROM rooms_players WHERE player_id = \'".concat(me.player_id, "\';");
                     pool.query(d);
-                    let r = "UPDATE rooms_rooms SET owner_id = ".concat(shot["owner"], " WHERE owner_id = ", me.player_id, ";");
+                    let r = "UPDATE rooms_rooms SET owner_id = \'".concat(shot["owner"], "\' WHERE owner_id = \'", me.player_id, "\';");
                     pool.query(r);
                     console.log("<< Bot ".concat(me.name, "#", me.player_id, " was killed by #", shot["owner"]))
                 }
@@ -237,7 +245,43 @@ methods.updateBots = function(players, rooms, shots, pool) {
 };
 
 methods.newBots = function(players, pool) {
-    // make new bots when necessary
+    // make new bots when necessary, called when a player joins
+    if(Object.keys(players).length < 10) {
+        let ids = [];
+        let i = 0;
+        while(i < 10-Object.keys(players).length) {
+            let gen_id = "b";
+            for (let i = 0; i < 3; i++) {
+                gen_id = gen_id.concat(Math.floor(Math.random()*10));
+            }
+            if(ids.includes(gen_id)) {
+                let gen_id = "b";
+                for (let i = 0; i < 3; i++) {
+                    gen_id = gen_id.concat(Math.floor(Math.random() * 10));
+                }
+            }
+            ids.push(gen_id);
+            let randomColor = Math.floor(Math.random()*16777215).toString(16);
+            const rgb = hexToRGB("#".concat(randomColor));
+            if(rgb.r < 20 && rgb.g < 20 && rgb.b < 20) {
+                randomColor = "#ffffff";
+            }
+            let data = {
+                "name": "Alice", // get from text input
+                "room_x": Math.floor(Math.random()*26)+2,
+                "room_y": Math.floor(Math.random()*26)+2,
+                "pos_x": Math.floor(Math.random()*50)+25,
+                "pos_y": Math.floor(Math.random()*50)+25,
+                "id": gen_id, // generated id
+                "skin": "#".concat(randomColor), // random hex color
+            };
+            let c = "INSERT INTO rooms_players (player_id, name, channel, skin, shield_on, pos_x, pos_y, room_x, room_y, is_bot) VALUES (\'";
+            c = c.concat(data.id, "\', \'", data.name, "\', 1, \'", data.skin, "\', false, ", data.pos_x, ", ", data.pos_y, ", ", data.room_x, ", ", data.room_y, ", 1);");
+            pool.query(c);
+            console.log(">> Created Bot ", data.name, "#", data.id);
+            i++;
+        }
+    }
 };
 
 exports.data = methods;
