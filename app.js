@@ -1,9 +1,11 @@
 // required modules
 const mysql = require('mysql2');
-var express = require('express');
-var app = express();
-var serv = require('http').Server(app);
-var io = require('socket.io')(serv, {});
+const express = require('express');
+const app = express();
+const serv = require('http').Server(app);
+const io = require('socket.io')(serv, {});
+const bots = require('./bots.js');
+// var sizeof = require('object-sizeof');
 
 // connect to index.html
 app.get('/',function(req, res) {
@@ -24,12 +26,20 @@ if(process.env.PORT !== undefined) {
     console.log("Local server started on port 8080");
 }
 
-// create mysql2 connection pool
+// create mysql2 connection pools
 const receive = mysql.createPool({host:'classnote.cctd6tsztsfn.us-west-1.rds.amazonaws.com', user: 'classnote', password: 'macklineli', database: 'ClassNoteDB'});
 const send = mysql.createPool({host:'classnote.cctd6tsztsfn.us-west-1.rds.amazonaws.com', user: 'classnote', password: 'macklineli', database: 'ClassNoteDB'});
+const cleanup_pool = mysql.createPool({host:'classnote.cctd6tsztsfn.us-west-1.rds.amazonaws.com', user: 'classnote', password: 'macklineli', database: 'ClassNoteDB'});
+const bots_pool = mysql.createPool({host:'classnote.cctd6tsztsfn.us-west-1.rds.amazonaws.com', user: 'classnote', password: 'macklineli', database: 'ClassNoteDB'});
 
-// local variable to remember players list
+// local variables to remember data
 let players = [];
+let player_data = [];
+let rooms_data = [];
+let shots_data = [];
+
+// let data_sent_amount = 0;
+// let start_time = new Date().getTime();
 
 // when the player sends data
 io.sockets.on('connection', function(socket){
@@ -40,7 +50,8 @@ io.sockets.on('connection', function(socket){
             i = i.concat(data.id, "\', \'", data.name, "\', 1, \'", data.skin, "\', false, ", data.pos_x, ", ", data.pos_y, ", ", data.room_x, ", ", data.room_y, ");");
             receive.query(i);
             players.push(data.id);
-            console.log(">> ".concat(data.name, "#", data.id, " joined"))
+            console.log(">> ".concat(data.name, "#", data.id, " joined"));
+            bots.data.newBots(player_data, bots_pool); // create new bots if needed
         } else { // normal update
             let q = 'UPDATE rooms_players SET room_x = ';
             q = q.concat(data.room_x);
@@ -76,12 +87,12 @@ io.sockets.on('connection', function(socket){
     });
     // if the client has asked for termination
     socket.on('killMe', function(player_id) {
-        let d = "DELETE FROM rooms_players WHERE player_id = ".concat(player_id[0], ";");
+        let d = "DELETE FROM rooms_players WHERE player_id = \'".concat(player_id[0], "\';");
         receive.query(d);
-        let r = "UPDATE rooms_rooms SET owner_id = ".concat(player_id[3], " WHERE owner_id = ", player_id[0], ";");
+        let r = "UPDATE rooms_rooms SET owner_id = \'".concat(player_id[3], "\' WHERE owner_id = ", player_id[0], ";");
         receive.query(r);
         if(player_id[3] !== "NULL") {
-            console.log("<< ".concat(player_id[1], "#", player_id[0], " was ", player_id[2], " by ", player_id[3]))
+            console.log("<< ".concat(player_id[1], "#", player_id[0], " was ", player_id[2], " by ", player_id[4]))
         } else {
             console.log("<< ".concat(player_id[1], "#", player_id[0], " was ", player_id[2]))
         }
@@ -96,9 +107,8 @@ function sendData() {
     const pre_query = new Date().getTime();
     send.query('SELECT * FROM rooms_players WHERE channel = 1;', function (err, results, fields) {
         io.sockets.emit('sendingPlayerData', results);
-        for(let p in results) {
-            players.push(p);
-        }
+        player_data = results;
+        bots.data.updateBots(player_data, rooms_data, shots_data, bots_pool);
     });
     // rooms data
     send.query('SELECT * FROM rooms_rooms WHERE channel = 1 AND owner_id IS NOT NULL;', function (err, results, fields) {
@@ -112,6 +122,7 @@ function sendData() {
         }
         io.sockets.emit('sendingRoomData', results_to_send);
         prev_rooms_results = results;
+        rooms_data = results;
     });
     // shots data
     let border_time = new Date().getTime() - 3000;
@@ -119,25 +130,33 @@ function sendData() {
         io.sockets.emit('sendingShotsData', results);
         let post_query = new Date().getTime();
         duration = post_query - pre_query;
-        // console.log(duration);
+        shots_data = results;
     });
 
+    // FIXME to save the server don't run this when no players are on... not sure how to do this yet
+
+    // uses dynamic timeout rather than interval to fix backlogging
     setTimeout(sendData, duration + 10);
-    // use dynamic timeout rather than interval to fix backlogging
 }
 sendData();
 
-function bots() {
-    // TODO control bots from here
-    // this is a big project that needs to be done but will take a while
-    // make sure that it doesn't lag the server too much also!
-}
-
-setInterval(bots, 100);
-
 function cleanup() {
-    // TODO delete old players and shots
-    // make sure this doesn't lag the server
+    // delete shots older than 3 seconds
+    let border_time = new Date().getTime() - 3000;
+    cleanup_pool.query('DELETE FROM rooms_shots WHERE shot_time < '.concat(border_time, ";"));
+    let players_list = [];
+    for(let p in player_data) {
+        players_list.push(player_data[p]["player_id"]);
+    }
+    let for_removal = [];
+    for(let r in rooms_data) {
+        if(!players_list.includes(rooms_data[r]["owner_id"])) {
+            for_removal.push(rooms_data[r]["owner_id"]);
+        }
+    }
+    for(let p in for_removal) {
+        cleanup_pool.query("UPDATE rooms_rooms SET owner_id = NULL WHERE owner_id = \'".concat(for_removal[p], "\';"));
+    }
 }
 
 setInterval(cleanup, 100);

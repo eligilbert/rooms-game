@@ -1,5 +1,23 @@
 {
   "0.0.1 (21 Jun 2020)": "initial push",
   "0.0.2 (23 Jun 2020)": "flipped speed mechanic, buffed shots, nerfed speed, return for start, fixed world border, get rooms from kill",
-  "0.0.3 ()": ""
+  "0.0.3 (24 Jun 2020)": "instructions",
+  "0.0.4 (24 Jun 2020)": "shots cleanup",
+  "0.1.0 (25 Jun 2020)": "initial bots skeleton",
+  "0.1.1 (26 Jun 2020)": "bots can move around in rooms mode",
+  "0.1.2 (27 Jun 2020)": "bots can move around in person mode",
+  "0.1.3 (27 Jun 2020)": "bots can shoot at players in the same room",
+  "0.1.4 (29 Jun 2020)": "bots can be killed and can take rooms from players by shooting",
+  "0.1.5 (30 Jun 2020)": "automatic bot creation, lots of bot fixes",
+
+  "future plans": {
+    "0.1.6": "final bot fixes, full game can run smoothly with only bots",
+    "0.2": "closed doors",
+    "0.3": "data transfer optimization",
+    "0.4": "aesthetic improvements",
+    "0.5": "improvements from beta testing with multiple players",
+    "0.6": "support for multiple channels",
+    "1.0": "public release",
+    "1.1": "improvements from problems with public release"
+  }
 }
