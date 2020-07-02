@@ -7,7 +7,7 @@ let methods = {};
 function getScore(id, rooms) {
     let s = 0;
     for(let r in rooms) {
-        if(rooms[r]["owner_id"] === id) {
+        if(rooms[r] === id) {
             s++;
         }
     }
@@ -40,14 +40,22 @@ function move(me, players, rooms, strategy, pool, score) {
     if(strategy === "room") {
         // find a room to move towards that i don't own
         // first check the room i'm in
-        if(rooms["(".concat(me.room_x, ",", me.room_y, ")")] !== me["player_id"]) {
+        let owner_in_room = false;
+        for(let p in players) {
+            if(players[p]["owner_id"] === rooms["(".concat(me.room_x, ",", me.room_y, ")")]) {
+                owner_in_room = true;
+                break;
+            }
+        }
+        if(rooms["(".concat(me.room_x, ",", me.room_y, ")")] !== me["player_id"] && !owner_in_room) {
             closest = {x: me.room_x, y: me.room_y};
         } else { // now check other rooms
             let i = -1;
             while(i <= 1) {
                 let j = -1;
                 while(j <= 1) {
-                    if(rooms["(".concat(me.room_x+i, ",", me.room_y+j, ")")] !== me["player_id"] && Math.abs(i + j) === 1) {
+                    let owner = rooms["(".concat(me.room_x+i, ",", me.room_y+j, ")")];
+                    if(owner !== me["player_id"] && Math.abs(i + j) === 1 && me.room_x + i <= 29 && me.room_y + j <= 29) {
                         closest = {x: me.room_x + i, y: me.room_y + j};
                     }
                     j++;
@@ -55,12 +63,9 @@ function move(me, players, rooms, strategy, pool, score) {
                 i++;
             }
         }
-        if(closest.x < 0 || closest.x > 29 || closest.y < 0 || closest.y > 29) {
-            closest = {x: 15, y: 15};
-        }
 
         // move towards the nearest room center
-        let delta = (4.5 - score / 20);
+        let delta = (4.5 - score / 20) / 3;
         let dx = me.room_x*100+me.pos_x-closest.x*100-50;
         let dy = me.room_y*100+me.pos_y-closest.y*100-50;
         new_px = me.pos_x;
@@ -89,7 +94,7 @@ function move(me, players, rooms, strategy, pool, score) {
             }
         }
 
-        let delta = (4.5 - score / 20);
+        let delta = (4.5 - score / 20) / 3;
         let dx = me.room_x*100+me.pos_x-closest.room_x*100-closest.pos_x;
         let dy = me.room_y*100+me.pos_y-closest.room_y*100-closest.pos_y;
         new_px = me.pos_x;
@@ -138,7 +143,7 @@ function shoot(me, players, strategy, pool) {
         let player = players[p];
         if(player.player_id !== me.player_id && player.room_x === me.room_x && player.room_y === me.room_y) {
             // restrict to ~1/sec
-            if(new Date().getTime() % 1000 < 100) {
+            if(Math.random() < 0.08) {
                 let dx = me.pos_x - player.pos_x;
                 let dy = me.pos_y - player.pos_y;
                 let theta = Math.atan(dx/(dy+0.001));
@@ -214,10 +219,11 @@ function check_collisions(me, players, shots, pool, rooms, score) {
             }
         }
     }
-    // TODO keep list of used shots or something
+    // TODO keep list of used shots or something right now we consider them to have infinite range
 }
 
 methods.updateBots = function(players, rooms, shots, pool) {
+    // console.log(new Date().getTime());
     let rooms_clean = {};
     for(let room in rooms) {
         let rd = rooms[room];
@@ -228,7 +234,7 @@ methods.updateBots = function(players, rooms, shots, pool) {
     for(let p in players) {
         if(players[p]["is_bot"]) {
             let player = players[p];
-            let myScore = getScore(player["player_id"], rooms);
+            let myScore = getScore(player["player_id"], rooms_clean);
             let strategy;
             if(myScore < 20) {
                 strategy = "room";
@@ -246,6 +252,7 @@ methods.updateBots = function(players, rooms, shots, pool) {
 
 methods.newBots = function(players, pool) {
     // make new bots when necessary, called when a player joins
+    const names = ["Alice", "Bob", "Cindy", "Dan", "Ellie", "Fred", "Greg", "Hildy", "Iris", "John", "Kristen", "Loser"];
     if(Object.keys(players).length < 10) {
         let ids = [];
         let i = 0;
@@ -267,7 +274,7 @@ methods.newBots = function(players, pool) {
                 randomColor = "#ffffff";
             }
             let data = {
-                "name": "Alice", // get from text input
+                "name": names[Math.floor(Math.random()*names.length)], // get from text input
                 "room_x": Math.floor(Math.random()*26)+2,
                 "room_y": Math.floor(Math.random()*26)+2,
                 "pos_x": Math.floor(Math.random()*50)+25,
@@ -277,8 +284,12 @@ methods.newBots = function(players, pool) {
             };
             let c = "INSERT INTO rooms_players (player_id, name, channel, skin, shield_on, pos_x, pos_y, room_x, room_y, is_bot) VALUES (\'";
             c = c.concat(data.id, "\', \'", data.name, "\', 1, \'", data.skin, "\', false, ", data.pos_x, ", ", data.pos_y, ", ", data.room_x, ", ", data.room_y, ", 1);");
-            pool.query(c);
-            console.log(">> Created Bot ", data.name, "#", data.id);
+            pool.query(c, function(err, results, fields) {
+                if(err) {
+                    console.log("!! Failed to create a bot");
+                }
+            });
+            console.log(">> Created Bot ".concat(data.name, "#", data.id));
             i++;
         }
     }
