@@ -452,10 +452,10 @@ function drawFullGameBoard() {
             if(JSONData.rooms.hasOwnProperty(room_id)) {
                 try {
                     DRAW.fillStyle = JSONData.players[JSONData.rooms[room_id]].skin;
-                    DRAW.fillRect(canvas.width-10-(30-x)*10+1, 10+y*10-1, 8, 8)
                 } catch (e) {
-                    console.error(e);
+                    DRAW.fillStyle = "black";
                 }
+                DRAW.fillRect(canvas.width-10-(30-x)*10+1, 10+y*10-1, 8, 8)
 
             }
             y++;
@@ -665,7 +665,7 @@ function drawLocal() {
     DRAW.beginPath();
     for(let shotid in JSONData.shots) {
         let shot = JSONData.shots[shotid];
-        if(!have_collided.includes(shot["shot_id"])) {
+        if(!have_collided.includes(shot["shot_id"]) && JSONData.players.hasOwnProperty(shot["owner"])) {
             const age = new Date().getTime() - shot["shot_time"];
             // x and y of shot from direction and age
             let x = midpoint[0] + shot["origin_pos_x"] * 4.5 + Math.sin(shot["theta"]) * age - JSONData.me.pos_x * 4.5 + (shot["origin_room_x"] - JSONData.me.room_x) * 450;
@@ -681,17 +681,15 @@ function drawLocal() {
             if(0 < x < canvas.width && 0 < y < canvas.height && age > 0) {
                 // draw shot
                 DRAW.lineWidth = 4 + scores[shot["owner"]] / 5;
-                DRAW.strokeStyle = JSONData.players[shot["owner"]].skin;
-                // FIXME shot from other person renders from reference point of player, as if it is shot by the player, creating a strange movement effect
-                let start_x, start_y;
-                if(shot["owner"] === JSONData.me.id) {
-                    start_x = midpoint[0];
-                    start_y = midpoint[1];
-                } else {
-                    let player = JSONData.players[shot["owner"]];
-                    start_x = midpoint[0] - (room_x - player.room_x) * 450 - (pos_x - player.pos_x) * 4.5;
-                    start_y = midpoint[1] - (room_y - player.room_y) * 450 - (pos_y - player.pos_y) * 4.5;
+                try {
+                    DRAW.strokeStyle = JSONData.players[shot["owner"]].skin;
+                } catch (e) {
+                    DRAW.strokeStyle = "black";
                 }
+
+                let start_x, start_y;
+                start_x = midpoint[0] - (room_x - shot.origin_room_x) * 450 - (pos_x - shot.origin_pos_x) * 4.5;
+                start_y = midpoint[1] - (room_y - shot.origin_room_y) * 450 - (pos_y - shot.origin_pos_y) * 4.5;
                 DRAW.moveTo((start_x+x)/2, (start_y+y)/2);
                 DRAW.lineTo(x,  y);
 

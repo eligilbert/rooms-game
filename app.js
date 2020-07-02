@@ -5,7 +5,7 @@ const app = express();
 const serv = require('http').Server(app);
 const io = require('socket.io')(serv, {});
 const bots = require('./bots.js');
-// var sizeof = require('object-sizeof');
+// const sizeof = require('object-sizeof');
 
 // connect to index.html
 app.get('/',function(req, res) {
@@ -16,15 +16,12 @@ app.get('/',function(req, res) {
 app.use(express.static(__dirname + '/static'));
 app.use(express.static(__dirname + '/images'));
 
-// set up server (for Heroku)
-if(process.env.PORT !== undefined) {
-    serv.listen(process.env.PORT);
-    console.log("Server started on port ".concat(process.env.PORT));
-} else {
-    // set up server (local)
-    serv.listen(8080);
-    console.log("Local server started on port 8080");
-}
+let port = process.env.PORT || 8080;
+serv.listen(port);
+console.log("Server started on port", port);
+
+// set to false to disable bots
+const use_bots = true;
 
 // create mysql2 connection pools
 const receive = mysql.createPool({host:'classnote.cctd6tsztsfn.us-west-1.rds.amazonaws.com', user: 'classnote', password: 'macklineli', database: 'ClassNoteDB'});
@@ -38,8 +35,9 @@ let player_data = [];
 let rooms_data = [];
 let shots_data = [];
 
-// let data_sent_amount = 0;
-// let start_time = new Date().getTime();
+// clear the sql tables on boot
+cleanup_pool.query("DELETE FROM rooms_players WHERE channel = 1;");
+cleanup_pool.query("UPDATE rooms_rooms SET owner_id = NULL WHERE room_id > -1;");
 
 // when the player sends data
 io.sockets.on('connection', function(socket){
@@ -51,7 +49,9 @@ io.sockets.on('connection', function(socket){
             receive.query(i);
             players.push(data.id);
             console.log(">> ".concat(data.name, "#", data.id, " joined"));
-            bots.data.newBots(player_data, bots_pool); // create new bots if needed
+            if(use_bots) {
+                bots.data.newBots(player_data, bots_pool); // create new bots if needed
+            }
         } else { // normal update
             let q = 'UPDATE rooms_players SET room_x = ';
             q = q.concat(data.room_x);
@@ -108,7 +108,9 @@ function sendData() {
     send.query('SELECT * FROM rooms_players WHERE channel = 1;', function (err, results, fields) {
         io.sockets.emit('sendingPlayerData', results);
         player_data = results;
-        bots.data.updateBots(player_data, rooms_data, shots_data, bots_pool);
+        if(use_bots) {
+            bots.data.updateBots(player_data, rooms_data, shots_data, bots_pool);
+        }
     });
     // rooms data
     send.query('SELECT * FROM rooms_rooms WHERE channel = 1 AND owner_id IS NOT NULL;', function (err, results, fields) {
