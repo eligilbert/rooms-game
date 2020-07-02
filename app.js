@@ -96,6 +96,7 @@ io.sockets.on('connection', function(socket){
         } else {
             console.log("<< ".concat(player_id[1], "#", player_id[0], " was ", player_id[2]))
         }
+        players = players.filter(function(ele){ return ele !== player_id[0]; });
     });
 });
 
@@ -103,62 +104,72 @@ io.sockets.on('connection', function(socket){
 let duration = 100;
 let prev_rooms_results = {};
 function sendData() {
-    // player data
-    const pre_query = new Date().getTime();
-    send.query('SELECT * FROM rooms_players WHERE channel = 1;', function (err, results, fields) {
-        io.sockets.emit('sendingPlayerData', results);
-        player_data = results;
-        if(use_bots) {
-            bots.data.updateBots(player_data, rooms_data, shots_data, bots_pool);
-        }
-    });
-    // rooms data
-    send.query('SELECT * FROM rooms_rooms WHERE channel = 1 AND owner_id IS NOT NULL;', function (err, results, fields) {
-        let results_to_send = {};
-        for(let result in results) {
-            if(!prev_rooms_results.hasOwnProperty(result)) {
-                results_to_send[result] = results[result];
-            } else if(results[result] !== prev_rooms_results[result]) {
-                results_to_send[result] = results[result];
+    if(players.length > 0) {
+        // player data
+        const pre_query = new Date().getTime();
+        send.query('SELECT * FROM rooms_players WHERE channel = 1;', function (err, results, fields) {
+            io.sockets.emit('sendingPlayerData', results);
+            player_data = results;
+            if(use_bots) {
+                bots.data.updateBots(player_data, rooms_data, shots_data, bots_pool);
             }
-        }
-        io.sockets.emit('sendingRoomData', results_to_send);
-        prev_rooms_results = results;
-        rooms_data = results;
-    });
-    // shots data
-    let border_time = new Date().getTime() - 3000;
-    send.query('SELECT * FROM rooms_shots WHERE channel = 1 AND shot_time > '.concat(border_time, ';'), function (err, results, fields) {
-        io.sockets.emit('sendingShotsData', results);
-        let post_query = new Date().getTime();
-        duration = post_query - pre_query;
-        shots_data = results;
-    });
+        });
+        // rooms data
+        send.query('SELECT * FROM rooms_rooms WHERE channel = 1 AND owner_id IS NOT NULL;', function (err, results, fields) {
+            let results_to_send = {};
+            for(let result in results) {
+                if(!prev_rooms_results.hasOwnProperty(result)) {
+                    results_to_send[result] = results[result];
+                } else if(results[result] !== prev_rooms_results[result]) {
+                    results_to_send[result] = results[result];
+                }
+            }
+            io.sockets.emit('sendingRoomData', results_to_send);
+            prev_rooms_results = results;
+            rooms_data = results;
+        });
+        // shots data
+        let border_time = new Date().getTime() - 3000;
+        send.query('SELECT * FROM rooms_shots WHERE channel = 1 AND shot_time > '.concat(border_time, ';'), function (err, results, fields) {
+            io.sockets.emit('sendingShotsData', results);
+            let post_query = new Date().getTime();
+            duration = post_query - pre_query;
+            shots_data = results;
+        });
 
-    // FIXME to save the server don't run this when no players are on... not sure how to do this yet
+        // FIXME to save the server don't run this when no players are on... not sure how to do this yet
+    } else {
+        io.sockets.emit('sendingPlayerData', {})
+    }
 
     // uses dynamic timeout rather than interval to fix backlogging
+    if(duration < 50) {
+        duration = 70;
+    }
+
     setTimeout(sendData, duration + 10);
 }
 sendData();
 
 function cleanup() {
-    // delete shots older than 3 seconds
-    let border_time = new Date().getTime() - 3000;
-    cleanup_pool.query('DELETE FROM rooms_shots WHERE shot_time < '.concat(border_time, ";"));
-    let players_list = [];
-    for(let p in player_data) {
-        players_list.push(player_data[p]["player_id"]);
-    }
-    let for_removal = [];
-    for(let r in rooms_data) {
-        if(!players_list.includes(rooms_data[r]["owner_id"])) {
-            for_removal.push(rooms_data[r]["owner_id"]);
+    if(players.length > 0) {
+        // delete shots older than 3 seconds
+        let border_time = new Date().getTime() - 3000;
+        cleanup_pool.query('DELETE FROM rooms_shots WHERE shot_time < '.concat(border_time, ";"));
+        let players_list = [];
+        for(let p in player_data) {
+            players_list.push(player_data[p]["player_id"]);
         }
-    }
-    for(let p in for_removal) {
-        cleanup_pool.query("UPDATE rooms_rooms SET owner_id = NULL WHERE owner_id = \'".concat(for_removal[p], "\';"));
+        let for_removal = [];
+        for(let r in rooms_data) {
+            if(!players_list.includes(rooms_data[r]["owner_id"])) {
+                for_removal.push(rooms_data[r]["owner_id"]);
+            }
+        }
+        for(let p in for_removal) {
+            cleanup_pool.query("UPDATE rooms_rooms SET owner_id = NULL WHERE owner_id = \'".concat(for_removal[p], "\';"));
+        }
     }
 }
 
-setInterval(cleanup, 100);
+setInterval(cleanup, 1000);
