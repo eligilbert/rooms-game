@@ -65,7 +65,7 @@ function move(me, players, rooms, strategy, pool, score) {
         }
 
         // move towards the nearest room center
-        let delta = (4.5 - score / 20) / 2.5;
+        let delta = (4.5 - score / 20) / 2;
         let dx = me.room_x*100+me.pos_x-closest.x*100-50;
         let dy = me.room_y*100+me.pos_y-closest.y*100-50;
         new_px = me.pos_x;
@@ -94,7 +94,7 @@ function move(me, players, rooms, strategy, pool, score) {
             }
         }
 
-        let delta = (4.5 - score / 20) / 2.5;
+        let delta = (4.5 - score / 20) / 2;
         let dx = me.room_x*100+me.pos_x-closest.room_x*100-closest.pos_x;
         let dy = me.room_y*100+me.pos_y-closest.room_y*100-closest.pos_y;
         new_px = me.pos_x;
