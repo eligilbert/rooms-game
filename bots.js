@@ -252,7 +252,7 @@ methods.updateBots = function(players, rooms, shots, pool) {
 
 methods.newBots = function(players, pool) {
     // make new bots when necessary, called when a player joins
-    const names = ["Alice", "Bob", "Cindy", "Dan", "Ellie", "Fred", "Greg", "Hildy", "Iris", "John", "Kristen", "Loser"];
+    const names = ["Alice", "Bob", "Cindy", "Dan", "Ellie", "Fred", "Greg", "Hildy", "Ian", "Janet", "Kringle", "Larry", "Mia"];
     if(Object.keys(players).length < 10) {
         let ids = [];
         let i = 0;

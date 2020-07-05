@@ -779,7 +779,7 @@ function drawDeath() {
     DRAW.fillStyle = "white";
     DRAW.textAlign = "center";
     DRAW.font = "36px Arial";
-    DRAW.fillText("You Died!", canvas.width/2, canvas.height/2 - 60);
+    DRAW.fillText("You were killed by ".concat(JSONData.me.kill_me_name, "!"), canvas.width/2, canvas.height/2 - 60);
     DRAW.font = "16px Arial";
     DRAW.fillText("".concat("You controlled: ", Math.round(max_score/0.09)/100, "% of the Rooms at your best"), canvas.width/2, canvas.height/2 - 40);
     DRAW.fillText("".concat("Your fired ", shots_fired, " shots"), canvas.width/2, canvas.height/2 - 20);
@@ -849,6 +849,7 @@ function meData() {
     } else if(JSONData.me.is_dead === true) {
         socket.emit('killMe', [JSONData.me.id, JSONData.me.name, "killed", JSONData.me.killed_me, JSONData.players[JSONData.me.killed_me]["name"].concat("#",JSONData.me.killed_me)]);
         JSONData.me.is_dead = 1;
+        JSONData.me.kill_me_name = JSONData.players[JSONData.me.killed_me]["name"];
     }
 }
 
