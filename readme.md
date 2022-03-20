@@ -1,4 +1,4 @@
-<h1>Information - I'll be updating this as I figure out how I want the game to work</h1>
+<h1></h1>
 <h2>Controls</h2>
 WASD - Move around
 <br>Space - Activate shield
